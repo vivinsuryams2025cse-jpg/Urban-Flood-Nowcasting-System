@@ -87,4 +87,27 @@ public class RainfallManager {
     public int getRecordCount() {
         return rainfallList.size();
     }
+
+    /**
+     * Finds a Rainfall record by location name (case-insensitive).
+     * Used to connect Day 1 rainfall data with Day 2 drainage systems.
+     * 
+     * @param location Location name to find
+     * @return Rainfall object if found, null otherwise
+     */
+    public Rainfall findRainfallByLocation(String location) {
+        for (Rainfall record : rainfallList) {
+            if (record.getLocation().equalsIgnoreCase(location.trim())) {
+                return record;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the list of all rainfall records.
+     */
+    public ArrayList<Rainfall> getRainfallList() {
+        return rainfallList;
+    }
 }

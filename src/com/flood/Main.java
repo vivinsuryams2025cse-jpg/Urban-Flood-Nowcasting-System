@@ -5,14 +5,20 @@ import java.util.Scanner;
 /**
  * Main.java
  * 
- * Main entry point for the Urban Flood Nowcasting System (Day 2).
- * Integrates the Drainage System Module with Day 1 Rainfall Observations.
+ * Main entry point for the Urban Flood Nowcasting System.
+ * Integrates:
+ * - Day 1: Rainfall Observation Module
+ * - Day 2: Drainage System & Rainfall-Drainage Coupling Module
+ * - Day 3: Flood Risk Calculation & Warning Module (Rule-Based Evaluation)
+ * 
  * Presents an interactive text-based console menu for users to:
  * - Enter and view rainfall observation data (Day 1)
  * - Enter and view urban drainage systems (Day 2)
  * - Calculate whether drainage systems can handle rainfall (Day 2)
  * - Run city-wide rainfall-drainage coupling nowcast (Day 2)
- * - Filter and display drainage overflow warnings (Day 2)
+ * - Calculate rule-based flood risk (LOW, MEDIUM, HIGH) (Day 3)
+ * - Run city-wide flood risk assessments with warnings and reasons (Day 3)
+ * - Perform custom 4-parameter flood risk simulations (Day 3)
  */
 public class Main {
 
@@ -23,12 +29,13 @@ public class Main {
 
         // -------------------------------------------------------------
         // INITIAL SAMPLE DATA (Day 1 Rainfall & Day 2 Drainage)
-        // Allows immediate testing of viewing & coupling nowcast features!
+        // Demonstrates all 3 Day 3 Risk Levels (LOW, MEDIUM, HIGH)
         // -------------------------------------------------------------
         
         // Day 1 Sample Rainfall Records
         rainfallManager.addRainfall(new Rainfall("Sector 4 Central Canal", 45.0, 1.5));
         rainfallManager.addRainfall(new Rainfall("Downtown Metro Subway Drain", 85.0, 1.0));
+        rainfallManager.addRainfall(new Rainfall("Riverside Boulevard Culvert", 10.0, 2.0));
 
         // Day 2 Sample Drainage Records (Coupled with the above zones)
         drainageManager.addDrainage(new Drainage("DRN-101", "Sector 4 Central Canal", 100.0, 30.0));
@@ -39,7 +46,7 @@ public class Main {
 
         System.out.println("=============================================================");
         System.out.println("  URBAN FLOOD NOWCASTING SYSTEM (Drainage & Rainfall Coupling)");
-        System.out.println("  [DAY 2: Drainage System & Rainfall-Drainage Coupling]");
+        System.out.println("  [DAY 3: Flood Risk Calculation & Warning Module]");
         System.out.println("=============================================================");
 
         while (running) {
@@ -55,9 +62,13 @@ public class Main {
             System.out.println("  6. Check if Drainage Can Handle Rainfall (Coupled Analysis)");
             System.out.println("  7. Run City-Wide Rainfall & Drainage Coupling Nowcast");
             System.out.println("  8. Display Drainage Systems at Overflow Risk / Warning");
+            System.out.println("  [Flood Risk Calculation - Day 3]");
+            System.out.println("  9. Calculate Flood Risk for a Drainage Zone (Coupled)");
+            System.out.println("  10. Run City-Wide Flood Risk Assessment (All Zones)");
+            System.out.println("  11. Calculate Custom Flood Risk (Manual 4-Variable Input)");
             System.out.println("  [System]");
-            System.out.println("  9. Exit System");
-            System.out.print("Please enter your choice (1-9): ");
+            System.out.println("  12. Exit System");
+            System.out.print("Please enter your choice (1-12): ");
 
             String choice = scanner.nextLine().trim();
 
@@ -241,14 +252,137 @@ public class Main {
                     break;
 
                 case "9":
-                    // Option 9: Exit program
+                    // Option 9: Calculate flood risk for a specific drainage unit (Day 3)
+                    System.out.println("\n--- [CALCULATE FLOOD RISK FOR DRAINAGE ZONE] ---");
+                    System.out.print("Enter Drainage ID to evaluate (e.g., DRN-101): ");
+                    String riskDrainId = scanner.nextLine().trim();
+
+                    Drainage evalDrain = drainageManager.findDrainageById(riskDrainId);
+                    if (evalDrain == null) {
+                        System.out.println("[ERROR] No drainage found with ID: " + riskDrainId);
+                        break;
+                    }
+
+                    // Check if rainfall data exists for this location
+                    Rainfall matchedRain = rainfallManager.findRainfallByLocation(evalDrain.getLocation());
+                    FloodRisk floodRisk;
+
+                    if (matchedRain != null) {
+                        System.out.println("[MATCH FOUND] Coupled with rainfall sensor data at: " + evalDrain.getLocation());
+                        System.out.printf("Observed: %.2f mm over %.2f hrs (Intensity: %.2f mm/hr - %s)\n",
+                                matchedRain.getRainfallAmount(), matchedRain.getDuration(),
+                                matchedRain.getIntensity(), matchedRain.getIntensityLevel());
+                        System.out.print("Use this observed rainfall data? (Y/N): ");
+                        String useObserved = scanner.nextLine().trim();
+
+                        if (useObserved.equalsIgnoreCase("Y")) {
+                            // Directly couple Rainfall object and Drainage object
+                            floodRisk = new FloodRisk(matchedRain, evalDrain);
+                        } else {
+                            System.out.print("Enter custom rainfall intensity in mm/hr (e.g., 35.0): ");
+                            double customIntensity = Double.parseDouble(scanner.nextLine().trim());
+                            System.out.print("Enter custom rainfall duration in hours (e.g., 2.0): ");
+                            double customDuration = Double.parseDouble(scanner.nextLine().trim());
+                            floodRisk = new FloodRisk(evalDrain.getLocation(), customIntensity, customDuration, 
+                                                     evalDrain.getCapacity(), evalDrain.getCurrentWaterLevel());
+                        }
+                    } else {
+                        System.out.println("[INFO] No sensor rainfall record found for: " + evalDrain.getLocation());
+                        System.out.println("Please provide estimated storm parameters:");
+                        System.out.print("Enter estimated rainfall intensity in mm/hr (e.g., 25.0): ");
+                        double customIntensity = Double.parseDouble(scanner.nextLine().trim());
+                        System.out.print("Enter estimated rainfall duration in hours (e.g., 1.5): ");
+                        double customDuration = Double.parseDouble(scanner.nextLine().trim());
+                        floodRisk = new FloodRisk(evalDrain.getLocation(), customIntensity, customDuration, 
+                                                 evalDrain.getCapacity(), evalDrain.getCurrentWaterLevel());
+                    }
+
+                    // Display full Flood Risk Report
+                    floodRisk.displayRiskReport();
+                    break;
+
+                case "10":
+                    // Option 10: Run city-wide flood risk assessment across all zones (Day 3)
+                    drainageManager.evaluateFloodRisks(rainfallManager);
+                    break;
+
+                case "11":
+                    // Option 11: Calculate custom flood risk using manual 4-variable input (Day 3)
+                    System.out.println("\n--- [CUSTOM FLOOD RISK CALCULATOR (4 PARAMETERS)] ---");
+                    System.out.print("Enter Location Name (e.g., Airport Express Underpass): ");
+                    String simLocation = scanner.nextLine().trim();
+                    if (simLocation.isEmpty()) {
+                        System.out.println("[ERROR] Location name cannot be empty!");
+                        break;
+                    }
+
+                    double simIntensity;
+                    System.out.print("Enter Rainfall Intensity in mm/hr (e.g., 40.0): ");
+                    try {
+                        simIntensity = Double.parseDouble(scanner.nextLine().trim());
+                        if (simIntensity < 0) {
+                            System.out.println("[ERROR] Rainfall intensity cannot be negative!");
+                            break;
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("[ERROR] Invalid number format for rainfall intensity!");
+                        break;
+                    }
+
+                    double simDuration;
+                    System.out.print("Enter Rainfall Duration in hours (e.g., 2.0): ");
+                    try {
+                        simDuration = Double.parseDouble(scanner.nextLine().trim());
+                        if (simDuration <= 0) {
+                            System.out.println("[ERROR] Duration must be greater than 0 hours!");
+                            break;
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("[ERROR] Invalid number format for rainfall duration!");
+                        break;
+                    }
+
+                    double simCapacity;
+                    System.out.print("Enter Drainage Capacity in mm (e.g., 100.0): ");
+                    try {
+                        simCapacity = Double.parseDouble(scanner.nextLine().trim());
+                        if (simCapacity <= 0) {
+                            System.out.println("[ERROR] Drainage capacity must be greater than 0 mm!");
+                            break;
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("[ERROR] Invalid number format for drainage capacity!");
+                        break;
+                    }
+
+                    double simWaterLevel;
+                    System.out.print("Enter Current Water Level in mm (e.g., 30.0): ");
+                    try {
+                        simWaterLevel = Double.parseDouble(scanner.nextLine().trim());
+                        if (simWaterLevel < 0) {
+                            System.out.println("[ERROR] Water level cannot be negative!");
+                            break;
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("[ERROR] Invalid number format for water level!");
+                        break;
+                    }
+
+                    // Create FloodRisk object combining all 4 parameters
+                    FloodRisk customFloodRisk = new FloodRisk(simLocation, simIntensity, simDuration, 
+                                                             simCapacity, simWaterLevel);
+                    customFloodRisk.displayRiskReport();
+                    break;
+
+                case "12":
+                    // Option 12: Exit program
                     System.out.println("\nThank you for using the Urban Flood Nowcasting System.");
-                    System.out.println("Day 2 completed successfully! Exiting...");
+                    System.out.println("Day 3 completed successfully! Exiting...");
                     running = false;
                     break;
 
                 default:
-                    System.out.println("\n[ERROR] Invalid option selected! Please choose a number between 1 and 9.");
+                    System.out.println("\n[ERROR] Invalid option selected! Please choose a number between 1 and 12.");
                     break;
             }
         }

@@ -33,6 +33,35 @@ An urban flood monitoring and short-term forecasting (nowcasting) system designe
 
 ---
 
+## Day 3: Flood Risk Calculation & Warning Module
+- Core `FloodRisk` entity combining 4 critical hydrological parameters:
+  1. **Rainfall Intensity** ($I$ in mm/hr)
+  2. **Rainfall Duration** ($T$ in hours)
+  3. **Drainage Capacity** ($C$ in mm)
+  4. **Current Water Level** ($W$ in mm)
+- **Coupling & Load Formulation**:
+  - $\text{Incoming Rain Volume} = I \times T$
+  - $\text{Total Water Load} = W + (I \times T)$
+  - $\text{Capacity Utilization} = \left(\frac{\text{Total Water Load}}{C}\right) \times 100\%$
+- **Rule-Based 3-Level Risk Classification** (No AI / ML required):
+  - **`HIGH` Risk**:
+    - Condition A: $\text{Total Water Load} > \text{Drainage Capacity}$ (Overflow active)
+    - Condition B: $\text{Capacity Utilization} \ge 85\%$ **AND** Rainfall Intensity $\ge 15.0\text{ mm/hr}$ (Flash flood surge)
+    - Warning: `RED ALERT` — Severe flooding underway/imminent, emergency response & evacuation.
+  - **`MEDIUM` Risk**:
+    - Condition A: $65\% \le \text{Capacity Utilization} \le 100\%$ (Elevated water load)
+    - Condition B: Rainfall Intensity $\ge 20.0\text{ mm/hr}$ for Duration $\ge 1.5\text{ hours}$ (Prolonged storm stress)
+    - Warning: `AMBER ADVISORY` — Street waterlogging expected in underpasses and low zones.
+  - **`LOW` Risk**:
+    - Condition: $\text{Capacity Utilization} < 65\%$ (Adequate headroom margin)
+    - Warning: `GREEN STATUS` — Safe conditions, normal drainage operation.
+- **Explainability**: Every risk assessment outputs the precise physical reason and an actionable warning alert.
+- Seamless connection with Day 1 `Rainfall` and Day 2 `Drainage` models.
+- City-wide flood risk batch evaluation across all coupled urban zones.
+- Interactive custom 4-variable flood risk calculator.
+
+---
+
 ## How to Compile and Run
 
 ### Option 1: Command Line (Terminal / CMD / PowerShell)

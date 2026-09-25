@@ -152,6 +152,73 @@ public class DrainageManager {
     }
 
     /**
+     * Evaluates city-wide flood risk across all registered drainage systems
+     * by coupling each system with its corresponding rainfall record using the FloodRisk class (Day 3).
+     * 
+     * @param rainfallManager The RainfallManager holding Day 1 rainfall observations
+     */
+    public void evaluateFloodRisks(RainfallManager rainfallManager) {
+        if (drainageList.isEmpty()) {
+            System.out.println("\n[INFO] No drainage systems registered. Please add drainage records first.");
+            return;
+        }
+
+        System.out.println("\n=============================================================");
+        System.out.println("     CITY-WIDE FLOOD RISK ASSESSMENT (DAY 3 NOWCASTING)      ");
+        System.out.println("=============================================================");
+
+        int lowCount = 0;
+        int medCount = 0;
+        int highCount = 0;
+        int uncoupledCount = 0;
+
+        for (Drainage drain : drainageList) {
+            Rainfall matchedRainfall = rainfallManager.findRainfallByLocation(drain.getLocation());
+            if (matchedRainfall != null) {
+                FloodRisk risk = new FloodRisk(matchedRainfall, drain);
+                risk.displayRiskReport();
+
+                if ("HIGH".equalsIgnoreCase(risk.getRiskLevel())) {
+                    highCount++;
+                } else if ("MEDIUM".equalsIgnoreCase(risk.getRiskLevel())) {
+                    medCount++;
+                } else {
+                    lowCount++;
+                }
+            } else {
+                uncoupledCount++;
+                System.out.println("\n[NOTICE] Drainage ID: " + drain.getDrainageId() + " (" + drain.getLocation() 
+                        + "): No rainfall sensor data coupled yet. Cannot compute full flood risk.");
+            }
+        }
+
+        System.out.println("\n----------------- FLOOD RISK SUMMARY REPORT -----------------");
+        System.out.println("  HIGH RISK ZONES   : " + highCount + " (CRITICAL ALERT)");
+        System.out.println("  MEDIUM RISK ZONES : " + medCount + " (ADVISORY MONITORING)");
+        System.out.println("  LOW RISK ZONES    : " + lowCount + " (SAFE CONDITIONS)");
+        if (uncoupledCount > 0) {
+            System.out.println("  UNCOUPLED ZONES   : " + uncoupledCount + " (Pending rainfall data)");
+        }
+        System.out.println("=============================================================");
+    }
+
+    /**
+     * Calculates flood risk for a specific drainage ID by coupling with rainfall data.
+     * 
+     * @param drainageId Drainage system ID to evaluate
+     * @param rainfallManager RainfallManager to look up matching rainfall record
+     * @return FloodRisk object or null if drainage not found
+     */
+    public FloodRisk calculateRiskForDrainage(String drainageId, RainfallManager rainfallManager) {
+        Drainage drain = findDrainageById(drainageId);
+        if (drain == null) {
+            return null;
+        }
+        Rainfall rain = rainfallManager.findRainfallByLocation(drain.getLocation());
+        return new FloodRisk(rain, drain);
+    }
+
+    /**
      * Returns the list of drainage records.
      */
     public ArrayList<Drainage> getDrainageList() {
@@ -165,3 +232,4 @@ public class DrainageManager {
         return drainageList.size();
     }
 }
+

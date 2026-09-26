@@ -62,6 +62,25 @@ An urban flood monitoring and short-term forecasting (nowcasting) system designe
 
 ---
 
+## Day 4: Evacuation & Emergency Response Advisory Module
+- Core `EvacuationAdvisory` entity coupling directly with the Day 3 `FloodRisk` object.
+- **4-Tier Threat Classification**:
+  - `CRITICAL` → Mandatory Evacuation (maps from HIGH risk)
+  - `ELEVATED` → Recommended Evacuation (maps from MEDIUM risk)
+  - `MODERATE` → Precautionary Advisory (LOW risk with ≥ 40% utilization)
+  - `NORMAL`   → No Action Required (LOW risk, ample headroom)
+- **Emergency Response Levels**: LEVEL-1 (Maximum) to LEVEL-4 (Routine)
+- **Deterministic Shelter Assignment**: 5 predefined city shelters assigned per zone using a location-name hash — repeatable across runs.
+- **Ordered Citizen Action Steps**: Context-specific, step-by-step directives tailored to each threat level.
+- **Time-Based Flood Progression Nowcast** (linear accumulation model):
+  - $\text{Projected Load}(t) = W + I \times t$ for $t \in \{0, 0.5, 1, 2, 3\}$ hours
+  - Displays projected load, utilization %, and status at each time horizon.
+- **Emergency Contact Escalation**: 5 official contacts (Flood Control Room, Fire & Rescue, Medical, Police, NDRF).
+- City-wide evacuation advisory sweep with threat-level summary count across all zones.
+- Interactive custom 4-parameter evacuation advisory calculator.
+
+---
+
 ## How to Compile and Run
 
 ### Option 1: Command Line (Terminal / CMD / PowerShell)

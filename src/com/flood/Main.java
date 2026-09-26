@@ -10,6 +10,7 @@ import java.util.Scanner;
  * - Day 1: Rainfall Observation Module
  * - Day 2: Drainage System & Rainfall-Drainage Coupling Module
  * - Day 3: Flood Risk Calculation & Warning Module (Rule-Based Evaluation)
+ * - Day 4: Evacuation & Emergency Response Advisory System
  * 
  * Presents an interactive text-based console menu for users to:
  * - Enter and view rainfall observation data (Day 1)
@@ -19,6 +20,9 @@ import java.util.Scanner;
  * - Calculate rule-based flood risk (LOW, MEDIUM, HIGH) (Day 3)
  * - Run city-wide flood risk assessments with warnings and reasons (Day 3)
  * - Perform custom 4-parameter flood risk simulations (Day 3)
+ * - Generate evacuation advisories with shelter assignment and flood progression (Day 4)
+ * - Run city-wide evacuation advisory sweep (Day 4)
+ * - Generate custom evacuation advisory via manual input (Day 4)
  */
 public class Main {
 
@@ -46,7 +50,7 @@ public class Main {
 
         System.out.println("=============================================================");
         System.out.println("  URBAN FLOOD NOWCASTING SYSTEM (Drainage & Rainfall Coupling)");
-        System.out.println("  [DAY 3: Flood Risk Calculation & Warning Module]");
+        System.out.println("  [DAY 4: Evacuation & Emergency Response Advisory Module]" );
         System.out.println("=============================================================");
 
         while (running) {
@@ -66,9 +70,13 @@ public class Main {
             System.out.println("  9. Calculate Flood Risk for a Drainage Zone (Coupled)");
             System.out.println("  10. Run City-Wide Flood Risk Assessment (All Zones)");
             System.out.println("  11. Calculate Custom Flood Risk (Manual 4-Variable Input)");
+            System.out.println("  [Evacuation & Emergency Advisory - Day 4]");
+            System.out.println("  13. Generate Evacuation Advisory for a Drainage Zone");
+            System.out.println("  14. Run City-Wide Evacuation Advisory Sweep (All Zones)");
+            System.out.println("  15. Generate Custom Evacuation Advisory (Manual Input)");
             System.out.println("  [System]");
-            System.out.println("  12. Exit System");
-            System.out.print("Please enter your choice (1-12): ");
+            System.out.println("  16. Exit System");
+            System.out.print("Please enter your choice (1-16): ");
 
             String choice = scanner.nextLine().trim();
 
@@ -374,15 +382,176 @@ public class Main {
                     customFloodRisk.displayRiskReport();
                     break;
 
-                case "12":
-                    // Option 12: Exit program
+                case "13":
+                    // Option 13: Generate evacuation advisory for a specific drainage zone (Day 4)
+                    System.out.println("\n--- [GENERATE EVACUATION ADVISORY FOR DRAINAGE ZONE] ---");
+                    System.out.print("Enter Drainage ID to evaluate (e.g., DRN-101): ");
+                    String advDrainId = scanner.nextLine().trim();
+
+                    Drainage advDrain = drainageManager.findDrainageById(advDrainId);
+                    if (advDrain == null) {
+                        System.out.println("[ERROR] No drainage found with ID: " + advDrainId);
+                        break;
+                    }
+
+                    Rainfall advRain = rainfallManager.findRainfallByLocation(advDrain.getLocation());
+                    FloodRisk advFloodRisk;
+
+                    if (advRain != null) {
+                        System.out.println("[MATCH] Coupled with sensor at: " + advDrain.getLocation());
+                        System.out.printf("Observed: %.2f mm/hr, %.2f hrs (%s)%n",
+                                advRain.getIntensity(), advRain.getDuration(), advRain.getIntensityLevel());
+                        System.out.print("Use this observed rainfall data? (Y/N): ");
+                        String useAdv = scanner.nextLine().trim();
+
+                        if (useAdv.equalsIgnoreCase("Y")) {
+                            advFloodRisk = new FloodRisk(advRain, advDrain);
+                        } else {
+                            System.out.print("Enter custom rainfall intensity in mm/hr: ");
+                            double cI = Double.parseDouble(scanner.nextLine().trim());
+                            System.out.print("Enter custom rainfall duration in hours: ");
+                            double cD = Double.parseDouble(scanner.nextLine().trim());
+                            advFloodRisk = new FloodRisk(advDrain.getLocation(), cI, cD,
+                                    advDrain.getCapacity(), advDrain.getCurrentWaterLevel());
+                        }
+                    } else {
+                        System.out.println("[INFO] No sensor rainfall data for: " + advDrain.getLocation());
+                        System.out.print("Enter estimated rainfall intensity in mm/hr: ");
+                        double cI2 = Double.parseDouble(scanner.nextLine().trim());
+                        System.out.print("Enter estimated rainfall duration in hours: ");
+                        double cD2 = Double.parseDouble(scanner.nextLine().trim());
+                        advFloodRisk = new FloodRisk(advDrain.getLocation(), cI2, cD2,
+                                advDrain.getCapacity(), advDrain.getCurrentWaterLevel());
+                    }
+
+                    // Generate and display full Day 4 evacuation advisory
+                    advFloodRisk.displayRiskReport();
+                    EvacuationAdvisory advisory = new EvacuationAdvisory(advFloodRisk);
+                    advisory.displayAdvisoryReport();
+                    break;
+
+                case "14":
+                    // Option 14: City-wide evacuation advisory sweep across all zones (Day 4)
+                    System.out.println("\n=============================================================");
+                    System.out.println("        CITY-WIDE EVACUATION ADVISORY SWEEP (DAY 4)        ");
+                    System.out.println("=============================================================");
+
+                    if (drainageManager.getDrainageList().isEmpty()) {
+                        System.out.println("[INFO] No drainage systems registered.");
+                        break;
+                    }
+
+                    int critCount = 0, elevCount = 0, modCount = 0, normCount = 0;
+
+                    for (Drainage sweepDrain : drainageManager.getDrainageList()) {
+                        Rainfall sweepRain = rainfallManager.findRainfallByLocation(sweepDrain.getLocation());
+                        FloodRisk sweepRisk;
+
+                        if (sweepRain != null) {
+                            sweepRisk = new FloodRisk(sweepRain, sweepDrain);
+                        } else {
+                            // No rainfall coupled: assume 0 intensity, baseline level only
+                            sweepRisk = new FloodRisk(sweepDrain.getLocation(), 0.0, 1.0,
+                                    sweepDrain.getCapacity(), sweepDrain.getCurrentWaterLevel());
+                        }
+
+                        EvacuationAdvisory sweepAdv = new EvacuationAdvisory(sweepRisk);
+                        sweepAdv.displayAdvisoryReport();
+
+                        switch (sweepAdv.getThreatLevel()) {
+                            case "CRITICAL": critCount++; break;
+                            case "ELEVATED": elevCount++; break;
+                            case "MODERATE": modCount++; break;
+                            default: normCount++; break;
+                        }
+                    }
+
+                    System.out.println("\n-------------- CITY THREAT LEVEL SUMMARY ----------------");
+                    System.out.println("  CRITICAL (MANDATORY EVACUATION) : " + critCount + " zone(s)");
+                    System.out.println("  ELEVATED (RECOMMENDED EVACUATION): " + elevCount + " zone(s)");
+                    System.out.println("  MODERATE (PRECAUTIONARY ADVISORY): " + modCount + " zone(s)");
+                    System.out.println("  NORMAL   (NO ACTION REQUIRED)    : " + normCount + " zone(s)");
+                    System.out.println("=============================================================");
+                    break;
+
+                case "15":
+                    // Option 15: Generate custom evacuation advisory via manual 4-variable input (Day 4)
+                    System.out.println("\n--- [CUSTOM EVACUATION ADVISORY CALCULATOR (4 PARAMETERS)] ---");
+                    System.out.print("Enter Location Name (e.g., Airport Expressway Underpass): ");
+                    String advSimLoc = scanner.nextLine().trim();
+                    if (advSimLoc.isEmpty()) {
+                        System.out.println("[ERROR] Location name cannot be empty!");
+                        break;
+                    }
+
+                    double advSimIntensity;
+                    System.out.print("Enter Rainfall Intensity in mm/hr (e.g., 40.0): ");
+                    try {
+                        advSimIntensity = Double.parseDouble(scanner.nextLine().trim());
+                        if (advSimIntensity < 0) {
+                            System.out.println("[ERROR] Rainfall intensity cannot be negative!");
+                            break;
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("[ERROR] Invalid number format for rainfall intensity!");
+                        break;
+                    }
+
+                    double advSimDuration;
+                    System.out.print("Enter Rainfall Duration in hours (e.g., 2.0): ");
+                    try {
+                        advSimDuration = Double.parseDouble(scanner.nextLine().trim());
+                        if (advSimDuration <= 0) {
+                            System.out.println("[ERROR] Duration must be greater than 0 hours!");
+                            break;
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("[ERROR] Invalid number format for rainfall duration!");
+                        break;
+                    }
+
+                    double advSimCapacity;
+                    System.out.print("Enter Drainage Capacity in mm (e.g., 100.0): ");
+                    try {
+                        advSimCapacity = Double.parseDouble(scanner.nextLine().trim());
+                        if (advSimCapacity <= 0) {
+                            System.out.println("[ERROR] Drainage capacity must be greater than 0 mm!");
+                            break;
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("[ERROR] Invalid number format for drainage capacity!");
+                        break;
+                    }
+
+                    double advSimWaterLevel;
+                    System.out.print("Enter Current Water Level in mm (e.g., 30.0): ");
+                    try {
+                        advSimWaterLevel = Double.parseDouble(scanner.nextLine().trim());
+                        if (advSimWaterLevel < 0) {
+                            System.out.println("[ERROR] Water level cannot be negative!");
+                            break;
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("[ERROR] Invalid number format for water level!");
+                        break;
+                    }
+
+                    FloodRisk customAdvRisk = new FloodRisk(advSimLoc, advSimIntensity, advSimDuration,
+                            advSimCapacity, advSimWaterLevel);
+                    customAdvRisk.displayRiskReport();
+                    EvacuationAdvisory customAdvisory = new EvacuationAdvisory(customAdvRisk);
+                    customAdvisory.displayAdvisoryReport();
+                    break;
+
+                case "16":
+                    // Option 16: Exit program
                     System.out.println("\nThank you for using the Urban Flood Nowcasting System.");
-                    System.out.println("Day 3 completed successfully! Exiting...");
+                    System.out.println("Day 4 completed successfully! Exiting...");
                     running = false;
                     break;
 
                 default:
-                    System.out.println("\n[ERROR] Invalid option selected! Please choose a number between 1 and 12.");
+                    System.out.println("\n[ERROR] Invalid option selected! Please choose a number between 1 and 16.");
                     break;
             }
         }

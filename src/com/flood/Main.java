@@ -11,6 +11,7 @@ import java.util.Scanner;
  * - Day 2: Drainage System & Rainfall-Drainage Coupling Module
  * - Day 3: Flood Risk Calculation & Warning Module (Rule-Based Evaluation)
  * - Day 4: Evacuation & Emergency Response Advisory System
+ * - Day 5: Flood Zone Classification Module (SAFE, WARNING, DANGER)
  * 
  * Presents an interactive text-based console menu for users to:
  * - Enter and view rainfall observation data (Day 1)
@@ -20,6 +21,7 @@ import java.util.Scanner;
  * - Calculate rule-based flood risk (LOW, MEDIUM, HIGH) (Day 3)
  * - Run city-wide flood risk assessments with warnings and reasons (Day 3)
  * - Perform custom 4-parameter flood risk simulations (Day 3)
+ * - Check Flood Zone Classification (SAFE, WARNING, DANGER) (Day 5)
  * - Generate evacuation advisories with shelter assignment and flood progression (Day 4)
  * - Run city-wide evacuation advisory sweep (Day 4)
  * - Generate custom evacuation advisory via manual input (Day 4)
@@ -50,7 +52,7 @@ public class Main {
 
         System.out.println("=============================================================");
         System.out.println("  URBAN FLOOD NOWCASTING SYSTEM (Drainage & Rainfall Coupling)");
-        System.out.println("  [DAY 4: Evacuation & Emergency Response Advisory Module]" );
+        System.out.println("  [DAY 5: Flood Zone Classification Module]" );
         System.out.println("=============================================================");
 
         while (running) {
@@ -70,6 +72,8 @@ public class Main {
             System.out.println("  9. Calculate Flood Risk for a Drainage Zone (Coupled)");
             System.out.println("  10. Run City-Wide Flood Risk Assessment (All Zones)");
             System.out.println("  11. Calculate Custom Flood Risk (Manual 4-Variable Input)");
+            System.out.println("  [Flood Zone Classification - Day 5]");
+            System.out.println("  12. Check Flood Zone");
             System.out.println("  [Evacuation & Emergency Advisory - Day 4]");
             System.out.println("  13. Generate Evacuation Advisory for a Drainage Zone");
             System.out.println("  14. Run City-Wide Evacuation Advisory Sweep (All Zones)");
@@ -382,6 +386,162 @@ public class Main {
                     customFloodRisk.displayRiskReport();
                     break;
 
+                case "12":
+                case "Check Flood Zone":
+                case "check flood zone":
+                    // Option 12: Check Flood Zone Classification (Day 5)
+                    System.out.println("\n--- [CHECK FLOOD ZONE CLASSIFICATION] ---");
+                    System.out.print("Enter Drainage ID to check (e.g., DRN-101), 'ALL' for city-wide sweep, or 'MANUAL' for custom: ");
+                    String zoneDrainId = scanner.nextLine().trim();
+
+                    if (zoneDrainId.equalsIgnoreCase("ALL")) {
+                        // City-wide Flood Zone Sweep
+                        System.out.println("\n=============================================================");
+                        System.out.println("         CITY-WIDE FLOOD ZONE CLASSIFICATION SWEEP          ");
+                        System.out.println("=============================================================");
+                        if (drainageManager.getDrainageList().isEmpty()) {
+                            System.out.println("[INFO] No drainage systems registered.");
+                            break;
+                        }
+
+                        int safeCount = 0, warnCount = 0, dangerCount = 0;
+                        for (Drainage drain : drainageManager.getDrainageList()) {
+                            Rainfall sweepZoneRain = rainfallManager.findRainfallByLocation(drain.getLocation());
+                            FloodZone floodZone;
+                            if (sweepZoneRain != null) {
+                                floodZone = new FloodZone(drain, sweepZoneRain);
+                            } else {
+                                floodZone = new FloodZone(drain.getLocation(), 0.0, 1.0,
+                                        drain.getCapacity(), drain.getCurrentWaterLevel());
+                            }
+                            floodZone.displayZoneReport();
+
+                            if ("SAFE".equalsIgnoreCase(floodZone.getZoneClassification())) {
+                                safeCount++;
+                            } else if ("WARNING".equalsIgnoreCase(floodZone.getZoneClassification())) {
+                                warnCount++;
+                            } else if ("DANGER".equalsIgnoreCase(floodZone.getZoneClassification())) {
+                                dangerCount++;
+                            }
+                        }
+
+                        System.out.println("\n-------------- FLOOD ZONE SUMMARY REPORT ----------------");
+                        System.out.println("  SAFE ZONES    : " + safeCount + " (Normal Flow / Safe Buffer)");
+                        System.out.println("  WARNING ZONES : " + warnCount + " (Elevated Water / Caution)");
+                        System.out.println("  DANGER ZONES  : " + dangerCount + " (Critical Hazard / Spillover)");
+                        System.out.println("=============================================================");
+                        break;
+                    } else if (zoneDrainId.equalsIgnoreCase("MANUAL") || zoneDrainId.equalsIgnoreCase("CUSTOM")) {
+                        // Manual custom flood zone simulation
+                        System.out.println("\n--- [CUSTOM FLOOD ZONE SIMULATION] ---");
+                        System.out.print("Enter Location Name (e.g., Downtown Plaza): ");
+                        String customLoc = scanner.nextLine().trim();
+                        if (customLoc.isEmpty()) {
+                            System.out.println("[ERROR] Location name cannot be empty!");
+                            break;
+                        }
+
+                        System.out.print("Enter Rainfall Intensity in mm/hr (e.g., 30.0): ");
+                        double customIntensity;
+                        try {
+                            customIntensity = Double.parseDouble(scanner.nextLine().trim());
+                            if (customIntensity < 0) {
+                                System.out.println("[ERROR] Rainfall intensity cannot be negative!");
+                                break;
+                            }
+                        } catch (NumberFormatException e) {
+                            System.out.println("[ERROR] Invalid number format for rainfall intensity!");
+                            break;
+                        }
+
+                        System.out.print("Enter Rainfall Duration in hours (e.g., 1.5): ");
+                        double customDuration;
+                        try {
+                            customDuration = Double.parseDouble(scanner.nextLine().trim());
+                            if (customDuration <= 0) {
+                                System.out.println("[ERROR] Duration must be greater than 0 hours!");
+                                break;
+                            }
+                        } catch (NumberFormatException e) {
+                            System.out.println("[ERROR] Invalid number format for rainfall duration!");
+                            break;
+                        }
+
+                        System.out.print("Enter Drainage Capacity in mm (e.g., 100.0): ");
+                        double customCapacity;
+                        try {
+                            customCapacity = Double.parseDouble(scanner.nextLine().trim());
+                            if (customCapacity <= 0) {
+                                System.out.println("[ERROR] Drainage capacity must be greater than 0 mm!");
+                                break;
+                            }
+                        } catch (NumberFormatException e) {
+                            System.out.println("[ERROR] Invalid number format for drainage capacity!");
+                            break;
+                        }
+
+                        System.out.print("Enter Current Water Level in mm (e.g., 25.0): ");
+                        double customWater;
+                        try {
+                            customWater = Double.parseDouble(scanner.nextLine().trim());
+                            if (customWater < 0) {
+                                System.out.println("[ERROR] Water level cannot be negative!");
+                                break;
+                            }
+                        } catch (NumberFormatException e) {
+                            System.out.println("[ERROR] Invalid number format for water level!");
+                            break;
+                        }
+
+                        FloodZone customZone = new FloodZone(customLoc, customIntensity, customDuration,
+                                customCapacity, customWater);
+                        customZone.displayZoneReport();
+                        break;
+                    }
+
+                    // Otherwise evaluate specific registered drainage system
+                    Drainage evalDrainage = drainageManager.findDrainageById(zoneDrainId);
+                    if (evalDrainage == null) {
+                        System.out.println("[ERROR] No drainage found with ID: " + zoneDrainId);
+                        break;
+                    }
+
+                    Rainfall evalRain = rainfallManager.findRainfallByLocation(evalDrainage.getLocation());
+                    FloodZone zoneResult;
+
+                    if (evalRain != null) {
+                        System.out.println("[MATCH FOUND] Coupled with rainfall sensor at: " + evalDrainage.getLocation());
+                        System.out.printf("Observed: %.2f mm over %.2f hrs (Intensity: %.2f mm/hr - %s)\n",
+                                evalRain.getRainfallAmount(), evalRain.getDuration(),
+                                evalRain.getIntensity(), evalRain.getIntensityLevel());
+                        System.out.print("Use this observed rainfall data? (Y/N): ");
+                        String useZoneRain = scanner.nextLine().trim();
+
+                        if (useZoneRain.equalsIgnoreCase("Y")) {
+                            zoneResult = new FloodZone(evalDrainage, evalRain);
+                        } else {
+                            System.out.print("Enter custom rainfall intensity in mm/hr (e.g., 35.0): ");
+                            double cInt = Double.parseDouble(scanner.nextLine().trim());
+                            System.out.print("Enter custom rainfall duration in hours (e.g., 2.0): ");
+                            double cDur = Double.parseDouble(scanner.nextLine().trim());
+                            zoneResult = new FloodZone(evalDrainage.getLocation(), cInt, cDur,
+                                    evalDrainage.getCapacity(), evalDrainage.getCurrentWaterLevel());
+                        }
+                    } else {
+                        System.out.println("[INFO] No sensor rainfall record found for: " + evalDrainage.getLocation());
+                        System.out.println("Please provide estimated storm parameters:");
+                        System.out.print("Enter estimated rainfall intensity in mm/hr (e.g., 25.0): ");
+                        double cInt = Double.parseDouble(scanner.nextLine().trim());
+                        System.out.print("Enter estimated rainfall duration in hours (e.g., 1.5): ");
+                        double cDur = Double.parseDouble(scanner.nextLine().trim());
+                        zoneResult = new FloodZone(evalDrainage.getLocation(), cInt, cDur,
+                                evalDrainage.getCapacity(), evalDrainage.getCurrentWaterLevel());
+                    }
+
+                    // Display full Flood Zone report
+                    zoneResult.displayZoneReport();
+                    break;
+
                 case "13":
                     // Option 13: Generate evacuation advisory for a specific drainage zone (Day 4)
                     System.out.println("\n--- [GENERATE EVACUATION ADVISORY FOR DRAINAGE ZONE] ---");
@@ -546,7 +706,7 @@ public class Main {
                 case "16":
                     // Option 16: Exit program
                     System.out.println("\nThank you for using the Urban Flood Nowcasting System.");
-                    System.out.println("Day 4 completed successfully! Exiting...");
+                    System.out.println("Day 5 completed successfully! Exiting...");
                     running = false;
                     break;
 

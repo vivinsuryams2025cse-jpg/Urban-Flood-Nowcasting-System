@@ -81,6 +81,31 @@ An urban flood monitoring and short-term forecasting (nowcasting) system designe
 
 ---
 
+## Day 5: Flood Zone Classification Module
+- Core `FloodZone` entity coupling:
+  - Rainfall observations (Day 1)
+  - Drainage channels and current water levels (Day 2)
+  - Hydrological risk assessments (Day 3)
+- **3-Tier Rule-Based Classification**:
+  - `DANGER` (Red):
+    - Conditions: Associated `HIGH` risk, total water load exceeding drainage capacity ($\text{Load} > C$), or capacity utilization $\ge 85\%$.
+    - Status: Severe waterlogging and imminent or active overflow.
+    - Precaution: Immediate evacuation or sheltering on upper floors; stay clear of low-lying roadways.
+  - `WARNING` (Amber / Yellow):
+    - Conditions: Associated `MEDIUM` risk, capacity utilization between $60\%$ and $85\%$, water level $\ge 60\%$ capacity, or high rainfall intensity ($\ge 15\text{ mm/hr}$).
+    - Status: Drainage network under moderate-to-heavy pressure with localized water accumulation.
+    - Precaution: Exercise caution, activate stormwater pumps, avoid parking in low zones.
+  - `SAFE` (Green):
+    - Conditions: Capacity utilization $< 60\%$, normal water level buffer, safe discharge flow.
+    - Status: Normal hydrological conditions; adequate headroom available.
+    - Precaution: Routine monitoring; no immediate flood threat.
+- **Menu Integration**:
+  - Added Option `12. Check Flood Zone` in `Main.java`.
+  - Supports single drainage zone assessment, city-wide flood zone sweep (`ALL`), and custom manual simulation (`MANUAL`).
+- Beginner-friendly, transparent rule-based implementation with no external ML or heavy frameworks.
+
+---
+
 ## How to Compile and Run
 
 ### Option 1: Command Line (Terminal / CMD / PowerShell)

@@ -3,6 +3,9 @@
 bin/
 out/
 
+# Maven build output
+target/
+
 # IDE files
 .idea/
 *.iml

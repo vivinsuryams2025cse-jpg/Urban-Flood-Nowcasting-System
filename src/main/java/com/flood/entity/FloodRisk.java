@@ -1,9 +1,18 @@
-package com.flood;
+package com.flood.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 
 /**
  * FloodRisk.java
  * 
- * Represents the Flood Risk Calculation Module (Day 3).
+ * JPA Entity representing the Flood Risk Calculation Module (Day 3).
  * Couples rainfall metrics with urban drainage capacity to evaluate flood vulnerability.
  * 
  * Inputs Combined:
@@ -16,32 +25,62 @@ package com.flood;
  * - LOW
  * - MEDIUM
  * - HIGH
- * 
- * Provides clear reasons and actionable flood warnings for citizens and city operators.
  */
+@Entity
+@Table(name = "flood_risk_assessments")
 public class FloodRisk {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     // 1. Input Parameters
-    private String location;          // Location or catchment area name
-    private double rainfallIntensity; // Intensity in mm/hour
-    private double rainfallDuration;  // Duration in hours
-    private double drainageCapacity;  // Maximum capacity in mm
-    private double currentWaterLevel; // Current baseline water level in mm
+    @Column(nullable = false)
+    private String location;
+
+    @Column(name = "rainfall_intensity", nullable = false)
+    private double rainfallIntensity;
+
+    @Column(name = "rainfall_duration", nullable = false)
+    private double rainfallDuration;
+
+    @Column(name = "drainage_capacity", nullable = false)
+    private double drainageCapacity;
+
+    @Column(name = "current_water_level", nullable = false)
+    private double currentWaterLevel;
 
     // 2. Computed Hydrological Values
-    private double totalWaterLoad;      // Baseline water + incoming rain (mm)
-    private double capacityUtilization; // Utilization percentage (%)
+    @Column(name = "total_water_load", nullable = false)
+    private double totalWaterLoad;
+
+    @Column(name = "capacity_utilization", nullable = false)
+    private double capacityUtilization;
 
     // 3. Risk Assessment Outputs
-    private String riskLevel;       // "LOW", "MEDIUM", "HIGH"
-    private String riskReason;      // Plain-language reason for the risk level
-    private String warningMessage;  // Actionable warning / alert message
+    @Column(name = "risk_level", nullable = false)
+    private String riskLevel;
+
+    @Column(name = "risk_reason", length = 1000)
+    private String riskReason;
+
+    @Column(name = "warning_message", length = 1000)
+    private String warningMessage;
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
     /**
-     * Constructor 1: Connects directly with existing Rainfall and Drainage objects.
-     * Demonstrates object coupling and modular design.
+     * Default No-arg constructor required by JPA.
+     */
+    public FloodRisk() {
+    }
+
+    /**
+     * Constructor 1: Connects directly with Rainfall and Drainage objects.
      * 
-     * @param rainfall Rainfall observation object (Day 1)
-     * @param drainage Drainage channel object (Day 2)
+     * @param rainfall Rainfall observation object
+     * @param drainage Drainage channel object
      */
     public FloodRisk(Rainfall rainfall, Drainage drainage) {
         if (drainage != null) {
@@ -84,35 +123,30 @@ public class FloodRisk {
         calculateRisk();
     }
 
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+        if (this.riskLevel == null) {
+            calculateRisk();
+        }
+    }
+
     /**
      * Calculates the flood risk level using transparent rule-based logic.
-     * 
-     * Step 1: Calculate incoming rainfall volume = Intensity * Duration.
-     * Step 2: Calculate total water load = Current Water Level + Incoming Rain.
-     * Step 3: Compute capacity utilization percentage = (Total Load / Capacity) * 100.
-     * Step 4: Apply rule-based thresholds to assign LOW, MEDIUM, or HIGH risk.
      */
     public void calculateRisk() {
-        // Incoming rain in mm = intensity (mm/hr) * duration (hr)
         double incomingRain = rainfallIntensity * rainfallDuration;
-
-        // Total water the drainage must carry
         this.totalWaterLoad = currentWaterLevel + incomingRain;
 
-        // Capacity utilization percentage
         if (drainageCapacity <= 0) {
             this.capacityUtilization = 100.0;
         } else {
             this.capacityUtilization = (totalWaterLoad / drainageCapacity) * 100.0;
         }
 
-        // -------------------------------------------------------------
-        // RULE-BASED RISK CLASSIFICATION LOGIC
-        // -------------------------------------------------------------
-        
         // RULE 1: HIGH RISK
-        // Condition A: Total water exceeds capacity (Overflow occurring)
-        // Condition B: Near saturation (>= 85%) with heavy rainfall intensity (>= 15 mm/hr)
         if (totalWaterLoad > drainageCapacity) {
             this.riskLevel = "HIGH";
             double excess = totalWaterLoad - drainageCapacity;
@@ -129,10 +163,7 @@ public class FloodRisk {
             );
             this.warningMessage = "RED ALERT: Flash flood warning! High-intensity rainfall will overwhelm remaining drainage buffer.";
         }
-        
         // RULE 2: MEDIUM RISK
-        // Condition A: Capacity utilization between 65% and 100%
-        // Condition B: Prolonged intense rain (>= 20 mm/hr for >= 1.5 hrs) creating runoff stress
         else if (capacityUtilization >= 65.0) {
             this.riskLevel = "MEDIUM";
             double remainingMargin = drainageCapacity - totalWaterLoad;
@@ -149,9 +180,7 @@ public class FloodRisk {
             );
             this.warningMessage = "AMBER ADVISORY: High-intensity runoff alert. Keep stormwater pumps on standby.";
         }
-        
         // RULE 3: LOW RISK
-        // Safe conditions: Utilization is low (< 65%) and within capacity limits
         else {
             this.riskLevel = "LOW";
             double reserveMargin = drainageCapacity - totalWaterLoad;
@@ -174,14 +203,14 @@ public class FloodRisk {
         System.out.println("==================================================");
         System.out.println("Location              : " + location);
         System.out.println("----------------- INPUT PARAMETERS ---------------");
-        System.out.printf("Rainfall Intensity    : %.2f mm/hr\n", rainfallIntensity);
-        System.out.printf("Rainfall Duration     : %.2f hours\n", rainfallDuration);
-        System.out.printf("Drainage Capacity     : %.2f mm\n", drainageCapacity);
-        System.out.printf("Current Water Level   : %.2f mm\n", currentWaterLevel);
+        System.out.printf ("Rainfall Intensity    : %.2f mm/hr\n", rainfallIntensity);
+        System.out.printf ("Rainfall Duration     : %.2f hours\n", rainfallDuration);
+        System.out.printf ("Drainage Capacity     : %.2f mm\n", drainageCapacity);
+        System.out.printf ("Current Water Level   : %.2f mm\n", currentWaterLevel);
         System.out.println("---------------- HYDROLOGICAL LOAD ---------------");
-        System.out.printf("Incoming Rain Volume  : %.2f mm\n", incomingRain);
-        System.out.printf("Total Water Load      : %.2f mm\n", totalWaterLoad);
-        System.out.printf("Capacity Utilization  : %.1f%%\n", capacityUtilization);
+        System.out.printf ("Incoming Rain Volume  : %.2f mm\n", incomingRain);
+        System.out.printf ("Total Water Load      : %.2f mm\n", totalWaterLoad);
+        System.out.printf ("Capacity Utilization  : %.1f%%\n", capacityUtilization);
         System.out.println("----------------- RISK EVALUATION ----------------");
         System.out.println("FLOOD RISK LEVEL      : [" + riskLevel + "]");
         System.out.println("Reason for Risk       : " + riskReason);
@@ -190,6 +219,14 @@ public class FloodRisk {
     }
 
     // --- Getters and Setters ---
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getLocation() {
         return location;
@@ -253,5 +290,13 @@ public class FloodRisk {
 
     public String getWarningMessage() {
         return warningMessage;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

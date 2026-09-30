@@ -1,18 +1,20 @@
-package com.flood;
+package com.flood.service;
+
+import com.flood.entity.Drainage;
+import com.flood.entity.FloodRisk;
+import com.flood.entity.Rainfall;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 
 /**
  * DrainageManager.java
  * 
- * Manages the collection of urban drainage systems.
- * Uses an ArrayList to store Drainage objects and provides methods to:
- * - Add a new drainage record
- * - Display all drainage records
- * - Filter and display drainage systems at WARNING or OVERFLOW RISK
- * - Find a drainage unit by its ID or location
- * - Connect and couple drainage records with rainfall data from Day 1
+ * Preserved Day 2 in-memory drainage management service.
+ * Stores Drainage objects, evaluates status, couples with RainfallManager records,
+ * and performs city-wide coupling sweeps.
  */
+@Service
 public class DrainageManager {
     // List to hold multiple Drainage objects in memory
     private ArrayList<Drainage> drainageList;
@@ -114,10 +116,7 @@ public class DrainageManager {
     }
 
     /**
-     * Connects and couples each drainage system with matching rainfall data from Day 1.
-     * Evaluates whether each drainage system can handle the observed rainfall at that location.
-     * 
-     * @param rainfallManager The RainfallManager holding Day 1 rainfall observations
+     * Connects and couples each drainage system with matching rainfall data.
      */
     public void coupleWithRainfallData(RainfallManager rainfallManager) {
         if (drainageList.isEmpty()) {
@@ -152,10 +151,7 @@ public class DrainageManager {
     }
 
     /**
-     * Evaluates city-wide flood risk across all registered drainage systems
-     * by coupling each system with its corresponding rainfall record using the FloodRisk class (Day 3).
-     * 
-     * @param rainfallManager The RainfallManager holding Day 1 rainfall observations
+     * Evaluates city-wide flood risk across all registered drainage systems.
      */
     public void evaluateFloodRisks(RainfallManager rainfallManager) {
         if (drainageList.isEmpty()) {
@@ -204,10 +200,6 @@ public class DrainageManager {
 
     /**
      * Calculates flood risk for a specific drainage ID by coupling with rainfall data.
-     * 
-     * @param drainageId Drainage system ID to evaluate
-     * @param rainfallManager RainfallManager to look up matching rainfall record
-     * @return FloodRisk object or null if drainage not found
      */
     public FloodRisk calculateRiskForDrainage(String drainageId, RainfallManager rainfallManager) {
         Drainage drain = findDrainageById(drainageId);
@@ -218,18 +210,11 @@ public class DrainageManager {
         return new FloodRisk(rain, drain);
     }
 
-    /**
-     * Returns the list of drainage records.
-     */
     public ArrayList<Drainage> getDrainageList() {
         return drainageList;
     }
 
-    /**
-     * Returns the total count of registered drainage systems.
-     */
     public int getDrainageCount() {
         return drainageList.size();
     }
 }
-

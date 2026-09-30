@@ -106,20 +106,76 @@ An urban flood monitoring and short-term forecasting (nowcasting) system designe
 
 ---
 
-## How to Compile and Run
+---
 
-### Option 1: Command Line (Terminal / CMD / PowerShell)
-Compile all Java files:
-```bash
-javac -d bin src/com/flood/*.java
+## Professional Spring Boot Layered Architecture
+
+The project has been fully restructured into a professional **Spring Boot 3.3.4** layered architecture.
+
+### Technology Stack
+- **Java 21** | **Spring Boot 3.3.4** | **Maven**
+- **Spring Web** (REST APIs) | **Spring Data JPA** (Hibernate + MySQL) | **Spring Validation**
+
+### Final Package Structure
+
+```
+src/main/java/com/flood/
+├── UrbanFloodNowcastingApplication.java   ← @SpringBootApplication entry point
+├── controller/    ← @RestController HTTP endpoints
+├── dto/           ← Request/Response Data Transfer Objects (@Valid)
+├── entity/        ← @Entity JPA database tables (Rainfall, Drainage, FloodRisk, FloodAlert, FloodZone)
+├── repository/    ← @Repository Spring Data JPA (JpaRepository)
+├── service/       ← @Service business logic + preserved Day 1-4 legacy classes
+├── exception/     ← ResourceNotFoundException, GlobalExceptionHandler
+└── config/        ← DatabaseConfig (JPA + Transaction Management)
+
+src/main/resources/
+└── application.properties   ← MySQL datasource, JPA/Hibernate config
 ```
 
-Run the application:
-```bash
-java -cp bin com.flood.Main
+### REST API Endpoints
+
+| Method | URL | Feature |
+|--------|-----|---------|
+| `POST` | `/api/rainfall` | Add rainfall data |
+| `GET`  | `/api/rainfall` | View all rainfall data |
+| `GET`  | `/api/rainfall/heavy` | Heavy rainfall zones |
+| `POST` | `/api/drainage` | Add drainage system |
+| `GET`  | `/api/drainage` | View all drainage systems |
+| `GET`  | `/api/drainage/{id}/water-level` | Monitor water level |
+| `PUT`  | `/api/drainage/{id}/water-level?level=35` | Update water level |
+| `GET`  | `/api/drainage/overflow-risk` | Drainage at overflow risk |
+| `POST` | `/api/flood-risk/calculate/{drainageId}` | Calculate coupled flood risk |
+| `POST` | `/api/flood-risk/calculate-custom` | Custom flood risk simulation |
+| `GET`  | `/api/flood-risk/zone/{drainageId}` | Check flood zone (SAFE/WARNING/DANGER) |
+| `GET`  | `/api/flood-risk/history` | View flood risk history |
+| `POST` | `/api/alerts/generate/{drainageId}` | Generate emergency alert |
+| `GET`  | `/api/alerts` | View all alerts |
+| `GET`  | `/api/reports/city-wide` | City-wide flood report |
+| `GET`  | `/api/reports/summary` | Threat level summary |
+
+### How to Build and Run (Spring Boot)
+
+**1. Configure MySQL credentials** in `src/main/resources/application.properties`:
+```properties
+spring.datasource.username=root
+spring.datasource.password=your_password
 ```
 
-### Option 2: Run in IDE (VS Code / IntelliJ / Eclipse)
-1. Open the project folder in your IDE.
-2. Navigate to `src/com/flood/Main.java`.
-3. Click **Run** or press `Shift + F10` (IntelliJ) / `F5` (VS Code).
+**2. Build with Maven:**
+```bash
+mvn clean package -DskipTests
+```
+
+**3. Run the Spring Boot application:**
+```bash
+java -jar target/urban-flood-nowcasting-1.0.0.jar
+```
+Server starts at `http://localhost:8080`
+
+### Legacy Console Mode (Days 1–5)
+The original console-based `Main.java` (Days 1–5 logic) has been preserved inside the service layer:
+- `service/RainfallManager.java` — Day 1 in-memory rainfall manager
+- `service/DrainageManager.java` — Day 2 in-memory drainage manager
+- `service/EvacuationAdvisory.java` — Day 4 evacuation advisory engine
+
